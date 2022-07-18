@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import * as FileSystem from "expo-file-system";
 import Place from "../models/Place";
 import { URL_GEOCODING } from "../utils/maps";
+import { inserAddress } from "../db";
 
 const initialState = {
   places: [],
@@ -12,9 +13,15 @@ const placeSlice = createSlice({
   initialState,
   reducers: {
     addPlace: (state, action) => {
-      const newPlace = new Place(Date.now(), action.payload.title, action.payload.image, action.payload.address, action.payload.coords);
+      const newPlace = new Place(
+        Date.now(),
+        action.payload.title,
+        action.payload.image,
+        action.payload.address,
+        action.payload.coords
+      );
       state.places.push(newPlace);
-    }
+    },
   },
 });
 
@@ -24,11 +31,13 @@ export const savePlace = (title, image, coords) => {
   return async (dispatch) => {
     const response = await fetch(URL_GEOCODING(coords.lat, coords.lng));
 
-    if(!response.ok) throw new Error("no se ha podido conectar con el servidor");
+    if (!response.ok)
+      throw new Error("no se ha podido conectar con el servidor");
 
     const data = await response.json();
 
-    if(!data.results) throw new Error("no se ha podido encontrar la dirección");
+    if (!data.results)
+      throw new Error("no se ha podido encontrar la dirección");
 
     const address = data.results[0].formatted_address;
 
@@ -40,13 +49,14 @@ export const savePlace = (title, image, coords) => {
         from: image,
         to: Path,
       });
+      result = await inserAddress(title, Path, address, coords);
     } catch (error) {
       console.log(error.message);
       throw error;
     }
 
     dispatch(addPlace({ title, image: Path, address, coords }));
-  }
-}
+  };
+};
 
 export default placeSlice.reducer;
