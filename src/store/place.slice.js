@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import * as FileSystem from "expo-file-system";
 import Place from "../models/Place";
 import { URL_GEOCODING } from "../utils/maps";
-import { inserAddress } from "../db";
+import { inserAddress, getAddress } from "../db";
 
 const initialState = {
   places: [],
@@ -14,7 +14,7 @@ const placeSlice = createSlice({
   reducers: {
     addPlace: (state, action) => {
       const newPlace = new Place(
-        Date.now(),
+        action.payload.id.toString(),
         action.payload.title,
         action.payload.image,
         action.payload.address,
@@ -22,13 +22,17 @@ const placeSlice = createSlice({
       );
       state.places.push(newPlace);
     },
+    loadAddress: (state, action) => {
+      state.places = action.payload;
+    },
   },
 });
 
-export const { addPlace } = placeSlice.actions;
+export const { addPlace, loadAddress } = placeSlice.actions;
 
 export const savePlace = (title, image, coords) => {
   return async (dispatch) => {
+    let result;
     const response = await fetch(URL_GEOCODING(coords.lat, coords.lng));
 
     if (!response.ok)
@@ -49,13 +53,28 @@ export const savePlace = (title, image, coords) => {
         from: image,
         to: Path,
       });
-      result = await inserAddress(title, Path, address, coords);
+
+      result = await inserAddress(title, Path, address = '', coords);
+      console.log("result insertAddress", result);
     } catch (error) {
       console.log(error.message);
       throw error;
     }
 
-    dispatch(addPlace({ title, image: Path, address, coords }));
+    dispatch(
+      addPlace({ id: result.insertId, title, image: Path, address, coords })
+    );
+  };
+};
+
+export const loadPlaces = () => {
+  return async (dispatch) => {
+    try {
+      const result = await getAddress();
+      dispatch(loadAddress(result.rows._array));
+    } catch (error) {
+      throw error;
+    }
   };
 };
 
