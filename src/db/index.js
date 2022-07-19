@@ -37,3 +37,22 @@ export const inserAddress = (title, image, address, coords) => {
 
   return promise;
 };
+
+export const getAddress = () => {
+  const promise = new Promise((resolve, reject) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "SELECT * FROM address",
+        [],
+        (_, result) => {
+          resolve(result);
+        },
+        (_, err) => {
+          reject(err);
+        }
+      );
+    });
+  });
+
+  return promise;
+};
